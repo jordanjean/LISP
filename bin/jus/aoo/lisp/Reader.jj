@@ -1,0 +1,68 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */
+options {
+	DEBUG_PARSER=false;
+	STATIC=true;
+}
+
+PARSER_BEGIN(Reader)
+
+package jus.aoo.lisp;
+
+public class Reader{}
+
+PARSER_END(Reader)
+// les caractères ignorés
+SKIP :
+{
+" " | "\t" | "\r"| "\n"
+// attention élimine la notion de fin de ligne
+| "\u0000" | "\u0001" | "\u0002" | "\u0003" | "\u0004" | "\u0005" | "\u0006" | "\u0007"
+| "\u0008" | "\u000B" | "\u000C" | "\u000E" | "\u000F" | "\u0010" | "\u0011" | "\u0012"
+| "\u0013" | "\u0014" | "\u0015" | "\u0016" | "\u0017" | "\u0018" | "\u0019" | "\u001A"
+| "\u001B" | "\u001C" | "\u001D" | "\u001E" | "\u001F" | "\u007F"
+}
+MORE :
+{
+"//" : IN_SL_COMMENT
+| "/*" : IN_ML_COMMENT
+}
+<IN_SL_COMMENT> SPECIAL_TOKEN :{<SL_COMMENT: "\n" | "\r" | "\r\n"> : DEFAULT}
+<IN_ML_COMMENT> SPECIAL_TOKEN :{<ML_COMMENT: "*/" > : DEFAULT}
+<IN_SL_COMMENT,IN_ML_COMMENT> SKIP :{< ~[] >}// les lexèmes du langage
+
+/* Lexèmes du language*/
+
+TOKEN :
+{
+  < DOT : "." >
+| < LPAR : "(" >
+| < RPAR : ")" >
+| < QUOTE : "'" >
+}
+
+TOKEN :
+{
+  < SYMBOL :(< DIGIT >| < LETTER >)+ >
+| < DIGIT : [ "0"-"9" ] >
+| < LETTER : [ "A"-"Z", "a"-"z" ] >
+| < SPECIAL : ~[ "0"-"9", "a"-"z", "A"-"Z", "|", "(", ")", "'", "`", ",", " ", "\u001f", "\u007f" ] >
+}
+
+/* Règles de grammaire de ce langage */
+
+SExpr SEXPRESSION() :{SExpr sexp;}{
+  sexp = ATOM(){return sexp;}
+| < LPAR > sexp = LIST()  < RPAR > { return sexp;}
+| < QUOTE > sexp = SEXPRESSION(){return new SCons(new Quote(), new SCons(sexp, Nil.NIL));}
+}
+
+SExpr LIST() :{SExpr s1, s2;}{
+  s1 = SEXPRESSION()(< DOT > s2 = SEXPRESSION()| s2 = LIST()){return new SCons(s1, s2);}
+|{return Nil.NIL;}
+}
+
+SExpr ATOM() :{Token t;}{
+  t = < SYMBOL >{return Symbol.newSymbol(t.image);}
+}
